@@ -1,0 +1,123 @@
+import gradio as gr
+from google import genai
+from google.genai import types
+from google.colab import userdata
+
+
+client = genai.Client(api_key=userdata.get("geminiapi"))
+
+
+personalities = {
+  "Friendly 🎀":
+  """You are a friendly, enthusiastic, and highly encouraging Study Assistant.
+  Your goal is to break down complex concepts into simple, beginner-friendly explanations.
+  Use analogies and real-world examples that beginners can relate to.
+  Always ask a follow-up question to check understanding""",
+  "Academic 📕":
+  """You are a strictly academic, highly detailed, and professional university Professor.
+  Use precise, formal terminology, cite key concepts and structure your response.
+  Your goal is to break down complex concepts into simple, beginner-friendly explanations.
+  Use analogies and real-world examples that beginners can relate to.
+  Always ask a follow-up question to check understanding""",
+  "Example Generator😺":
+  """ You are an Example Generator Study Assistant.
+Your goal is to explain concepts mainly using examples.
+Start with a very simple example and then give a slightly harder one.
+Explain each example in clear, step-by-step language.
+Use easy numbers and relatable situations when possible.
+Focus on helping the student understand through examples, not theory.""",
+"Step By Step Solver😁":
+  """You are a Step-by-Step Solver Study Assistant.
+Your goal is to solve problems in a slow, clear, and structured way.
+Break the solution into small numbered steps.
+Explain what is done in each step using simple language.
+Do not skip any steps or logic.
+Clearly show calculations, formulas, and substitutions.
+Focus on understanding, not speed.
+End by summarizing the final answer clearly.
+"""
+
+}
+
+# LLM function
+def study_assistant(question, persona):
+    system_prompt = personalities[persona]
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.4,
+            max_output_tokens=2000
+        ),
+        contents=question
+    )
+    return response.text
+
+
+
+custom_css = """
+body {
+    background-color: #0f172a;
+}
+
+.gradio-container {
+    max-width: 900px;
+    margin: auto;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+h1 {
+    text-align: center;
+    color: #38bdf8;
+}
+
+label {
+    color: pink;
+}
+
+textarea {
+    border-radius: 10px !important;
+}
+
+button {
+    background-color:#B57EDC !important;
+    color: white !important;
+    border-radius: 10px !important;
+    font-weight: bold;
+}
+"""
+
+
+with gr.Blocks(css=custom_css) as demo:
+    gr.Markdown("# My AI Study Assistant✨")
+    gr.Markdown("Choose a personality and ask your study-related question.")
+
+    with gr.Row():
+        with gr.Column():
+            question = gr.Textbox(
+                lines=4,
+                placeholder="Ask a question...",
+                label="Question"
+            )
+            persona = gr.Radio(
+                choices=list(personalities.keys()),
+                value="Friendly",
+                label="Personality"
+            )
+            submit = gr.Button("Get Answer")
+
+        with gr.Column():
+            response = gr.Textbox(
+                lines=12,
+                label="Response"
+            )
+
+    submit.click(
+        fn=study_assistant,
+        inputs=[question, persona],
+        outputs=response
+    )
+
+demo.launch(debug=True, share=True)
+!pip install -q gradio
